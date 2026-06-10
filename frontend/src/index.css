@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Barlow";
+  src: url("/fonts/Barlow-Regular.ttf");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-Regular.ttf");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-ExtraBold.ttf");
+  font-weight: 800;
+}
+
+@theme {
+  --font-barlow: "Barlow", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
+
+  --color-latar: #eef7fc;
+  --color-teks: #374151;
+  --color-teks-samping: #6b7280;
+  --color-garis: #e5e7eb;
+
+  --color-biru-bengkel: #3d5577;
+  --color-biru-tua: #233b5c;
+  --color-biru-muda: #dfe9f7;
+
+  --color-hijau: #22c55e;
+  --color-merah: #ef4444;
+  --color-biru: #3b82f6;
+  --color-kuning: #facc15;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: #eef7fc;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+a {
+  text-decoration: none;
+}
