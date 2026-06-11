@@ -29,6 +29,14 @@ export default function Stok() {
         status: "Tersedia",
     });
 
+    const [editId, setEditId] = useState(null);
+
+    const [selectedStok, setSelectedStok] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+
+    const [deleteId, setDeleteId] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
     const statusStyle = {
         Tersedia: "bg-[#22c55e] text-white",
         Menipis: "bg-[#facc15] text-black",
@@ -48,14 +56,22 @@ export default function Stok() {
         e.preventDefault();
 
         try {
-            await axios.post("http://127.0.0.1:8000/api/stok-suku-cadang", {
+            const payload = {
                 no_seri: formData.noSeri,
                 nama_suku_cadang: formData.namaSukuCadang,
                 kategori: formData.kategori,
                 harga: Number(formData.harga),
                 stok: Number(formData.stok),
                 stok_minimum: 5,
-            });
+            };
+
+            if (editId) {
+                await axios.put(`http://127.0.0.1:8000/api/stok-suku-cadang/${editId}`, payload);
+                alert("Data stok berhasil diperbarui!");
+            } else {
+                await axios.post("http://127.0.0.1:8000/api/stok-suku-cadang", payload);
+                alert("Data stok berhasil ditambahkan!");
+            }
 
             await getStokData();
 
@@ -68,22 +84,48 @@ export default function Stok() {
                 status: "Tersedia",
             });
 
+            setEditId(null);
             setShowForm(false);
-            alert("Data stok berhasil ditambahkan!");
         } catch (error) {
-            console.error("Gagal menambah data stok:", error);
-            alert("Gagal menambah data stok. Cek console ya.");
+            console.error("Gagal menyimpan data stok:", error);
+            alert("Gagal menyimpan data stok. Cek console ya.");
         }
     };
 
-    const handleDelete = async (id) => {
-        const confirmDelete = window.confirm("Yakin ingin menghapus data stok ini?");
+    const handleView = (item) => {
+        setSelectedStok(item);
+        setShowDetailModal(true);
+    };
 
-        if (!confirmDelete) return;
+    const handleEdit = (item) => {
+        setEditId(item.id);
 
+        setFormData({
+            noSeri: item.no_seri,
+            namaSukuCadang: item.nama_suku_cadang,
+            kategori: item.kategori,
+            harga: item.harga,
+            stok: item.stok,
+            status: item.status,
+        });
+
+        setShowForm(true);
+    };
+
+    const handleDelete = (id) => {
+        setDeleteId(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
         try {
-            await axios.delete(`http://127.0.0.1:8000/api/stok-suku-cadang/${id}`);
+            await axios.delete(`http://127.0.0.1:8000/api/stok-suku-cadang/${deleteId}`);
+
             await getStokData();
+
+            setDeleteId(null);
+            setShowDeleteModal(false);
+
             alert("Data stok berhasil dihapus!");
         } catch (error) {
             console.error("Gagal menghapus data stok:", error);
@@ -325,9 +367,15 @@ export default function Stok() {
 
                                     <td className="p-4">
                                         <div className="flex gap-3 text-[16px]">
-                                            <FaEye className="cursor-pointer text-[#3d5577]" />
+                                            <FaEye
+                                                onClick={() => handleView(item)}
+                                                className="cursor-pointer text-[#3d5577]"
+                                            />
 
-                                            <FaPen className="cursor-pointer text-[#3d5577]" />
+                                            <FaPen
+                                                onClick={() => handleEdit(item)}
+                                                className="cursor-pointer text-[#3d5577]"
+                                            />
 
                                             <button onClick={() => handleDelete(item.id)}>
                                                 <FaTrash className="cursor-pointer text-red-500 hover:text-red-700" />
@@ -340,6 +388,113 @@ export default function Stok() {
                     </tbody>
                 </table>
             </div>
+            {showDetailModal && selectedStok && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[450px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-5">
+                            Detail Stok Suku Cadang
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">No Seri</p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedStok.no_seri}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Nama Suku Cadang</p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedStok.nama_suku_cadang}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Kategori</p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedStok.kategori}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Harga</p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    Rp. {Number(selectedStok.harga || 0).toLocaleString("id-ID")}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Stok</p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedStok.stok}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Status</p>
+                                <span
+                                    className={`inline-block text-[12px] font-bold px-3 py-1 rounded-full ${
+                                        selectedStok.status === "Habis"
+                                            ? "bg-red-100 text-red-600"
+                                            : selectedStok.status === "Menipis"
+                                            ? "bg-yellow-100 text-yellow-600"
+                                            : "bg-green-100 text-green-600"
+                                    }`}
+                                >
+                                    {selectedStok.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setSelectedStok(null);
+                                }}
+                                className="bg-[#3d5577] text-white px-5 py-2 rounded-[6px] font-bold hover:bg-[#2f4566]"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[420px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-3">
+                            Hapus Stok?
+                        </h2>
+
+                        <p className="text-[14px] text-gray-600 mb-6">
+                            Apakah kamu yakin ingin menghapus data stok ini? Data yang sudah dihapus tidak dapat dikembalikan.
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteId(null);
+                                }}
+                                className="px-5 py-2 rounded-[6px] border border-gray-300 font-bold text-gray-600 hover:bg-gray-100"
+                            >
+                                Batal
+                            </button>
+
+                            <button
+                                onClick={confirmDelete}
+                                className="px-5 py-2 rounded-[6px] bg-red-600 text-white font-bold hover:bg-red-700"
+                            >
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

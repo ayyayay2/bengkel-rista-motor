@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FaEye, FaPen, FaPrint, FaPlus } from "react-icons/fa";
+import { FaEye, FaPen, FaTrash, FaPlus } from "react-icons/fa";
 
 export default function Orders() {
     const [showForm, setShowForm] = useState(false);
@@ -19,6 +19,14 @@ export default function Orders() {
         biayaSparepart: "",
         status: "ANTRE",
     });
+
+    const [editId, setEditId] = useState(null);
+
+    const [selectedTransaksi, setSelectedTransaksi] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+
+    const [deleteId, setDeleteId] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const getTransactionData = async () => {
         try {
@@ -52,7 +60,7 @@ export default function Orders() {
         e.preventDefault();
 
         try {
-            await axios.post("http://127.0.0.1:8000/api/transaksi", {
+            const payload = {
                 nama_pelanggan: formData.namaPelanggan,
                 no_telp: formData.noTelp,
                 no_polisi: formData.noPolisi,
@@ -64,7 +72,15 @@ export default function Orders() {
                 biaya_jasa: Number(formData.biayaJasa),
                 biaya_sparepart: Number(formData.biayaSparepart),
                 status: formData.status,
-            });
+            };
+
+            if (editId) {
+                await axios.put(`http://127.0.0.1:8000/api/transaksi/${editId}`, payload);
+                alert("Data transaksi berhasil diperbarui!");
+            } else {
+                await axios.post("http://127.0.0.1:8000/api/transaksi", payload);
+                alert("Data transaksi berhasil ditambahkan!");
+            }
 
             await getTransactionData();
 
@@ -79,14 +95,58 @@ export default function Orders() {
                 mekanik: "",
                 biayaJasa: "",
                 biayaSparepart: "",
-                status: "PROSES",
+                status: "ANTRE",
             });
 
+            setEditId(null);
             setShowForm(false);
-            alert("Data transaksi berhasil ditambahkan!");
         } catch (error) {
-            console.error("Gagal menambah transaksi:", error);
-            alert("Gagal menambah transaksi. Cek console ya.");
+            console.error("Gagal menyimpan transaksi:", error);
+            alert("Gagal menyimpan transaksi. Cek console ya.");
+        }
+    };
+
+    const handleView = (item) => {
+        setSelectedTransaksi(item);
+        setShowDetailModal(true);
+    };
+
+    const handleEdit = (item) => {
+        setEditId(item.id);
+
+        setFormData({
+            namaPelanggan: item.nama_pelanggan || "",
+            noTelp: item.no_telp || "",
+            noPolisi: item.no_polisi || "",
+            merk: item.merk || "",
+            tipe: item.tipe || "",
+            jenisService: item.jenis_service || "",
+            keluhan: item.keluhan || "",
+            mekanik: item.mekanik || "",
+            biayaJasa: item.biaya_jasa || "",
+            biayaSparepart: item.biaya_sparepart || "",
+            status: item.status || "ANTRE",
+        });
+
+        setShowForm(true);
+    };
+
+    const handleDelete = (id) => {
+        setDeleteId(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await axios.delete(`http://127.0.0.1:8000/api/transaksi/${deleteId}`);
+
+            await getTransactionData();
+
+            setDeleteId(null);
+            setShowDeleteModal(false);
+
+        } catch (error) {
+            console.error("Gagal menghapus transaksi:", error);
         }
     };
 
@@ -102,6 +162,129 @@ export default function Orders() {
                     TAMBAH TRANSAKSI BARU
                 </button>
             </div>
+
+            {showDetailModal && selectedTransaksi && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[520px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-5">
+                            Detail Transaksi
+                        </h2>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">No Transaksi</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.no_transaksi || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Tanggal</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.tanggal || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Nama Pelanggan</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.nama_pelanggan}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">No Telepon</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.no_telp || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">No Polisi</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.no_polisi}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Kendaraan</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.merk || "-"} {selectedTransaksi.tipe || ""}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Jenis Service</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.jenis_service}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Mekanik</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.mekanik || "-"}
+                                </p>
+                            </div>
+
+                            <div className="col-span-2">
+                                <p className="text-[12px] text-gray-500 font-semibold">Keluhan</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.keluhan || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Biaya Jasa</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    Rp. {Number(selectedTransaksi.biaya_jasa || 0).toLocaleString("id-ID")}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Biaya Sparepart</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    Rp. {Number(selectedTransaksi.biaya_sparepart || 0).toLocaleString("id-ID")}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Total Biaya</p>
+                                <p className="text-[16px] font-extrabold text-[#3d5577]">
+                                    Rp. {Number(selectedTransaksi.total_biaya || 0).toLocaleString("id-ID")}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Status</p>
+                                <span
+                                    className={`inline-block text-[12px] font-bold px-3 py-1 rounded-full ${
+                                        selectedTransaksi.status === "SELESAI"
+                                            ? "bg-green-100 text-green-600"
+                                            : selectedTransaksi.status === "PROSES"
+                                            ? "bg-yellow-100 text-yellow-600"
+                                            : "bg-gray-100 text-gray-600"
+                                    }`}
+                                >
+                                    {selectedTransaksi.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setSelectedTransaksi(null);
+                                }}
+                                className="bg-[#3d5577] text-white px-5 py-2 rounded-[6px] font-bold hover:bg-[#2f4566]"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Form Tambah Transaksi */}
             {showForm && (
@@ -290,6 +473,7 @@ export default function Orders() {
                         <option>Service ringan</option>
                         <option>Service berat</option>
                         <option>Ganti oli</option>
+                        <option>Ganti oli</option>
                     </select>
                 </div>
 
@@ -398,9 +582,20 @@ export default function Orders() {
 
                                     <td className="p-4">
                                         <div className="flex gap-3 text-[#3d5577] text-[16px]">
-                                            <FaEye className="cursor-pointer" />
-                                            <FaPen className="cursor-pointer" />
-                                            <FaPrint className="cursor-pointer" />
+                                            <FaEye
+                                                onClick={() => handleView(item)}
+                                                className="cursor-pointer text-[#3d5577]"
+                                            />
+
+                                            <FaPen
+                                                onClick={() => handleEdit(item)}
+                                                className="cursor-pointer text-[#3d5577]"
+                                            />
+
+                                            <FaTrash
+                                                onClick={() => handleDelete(item.id)}
+                                                className="text-red-600 cursor-pointer"
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -409,6 +604,161 @@ export default function Orders() {
                     </tbody>
                 </table>
             </div>
+
+            {showDetailModal && selectedTransaksi && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[520px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-5">
+                            Detail Transaksi
+                        </h2>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">No Transaksi</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.no_transaksi || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Tanggal</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.tanggal || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Nama Pelanggan</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.nama_pelanggan}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">No Telepon</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.no_telp || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">No Polisi</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.no_polisi}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Kendaraan</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.merk || "-"} {selectedTransaksi.tipe || ""}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Jenis Service</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.jenis_service}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Mekanik</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.mekanik || "-"}
+                                </p>
+                            </div>
+
+                            <div className="col-span-2">
+                                <p className="text-[12px] text-gray-500 font-semibold">Keluhan</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    {selectedTransaksi.keluhan || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Biaya Jasa</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    Rp. {Number(selectedTransaksi.biaya_jasa || 0).toLocaleString("id-ID")}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Biaya Sparepart</p>
+                                <p className="text-[15px] font-bold text-gray-800">
+                                    Rp. {Number(selectedTransaksi.biaya_sparepart || 0).toLocaleString("id-ID")}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Total Biaya</p>
+                                <p className="text-[16px] font-extrabold text-[#3d5577]">
+                                    Rp. {Number(selectedTransaksi.total_biaya || 0).toLocaleString("id-ID")}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">Status</p>
+                                <span
+                                    className={`inline-block text-[12px] font-bold px-3 py-1 rounded-full ${
+                                        selectedTransaksi.status === "SELESAI"
+                                            ? "bg-green-100 text-green-600"
+                                            : selectedTransaksi.status === "PROSES"
+                                            ? "bg-yellow-100 text-yellow-600"
+                                            : "bg-gray-100 text-gray-600"
+                                    }`}
+                                >
+                                    {selectedTransaksi.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setSelectedTransaksi(null);
+                                }}
+                                className="bg-[#3d5577] text-white px-5 py-2 rounded-[6px] font-bold hover:bg-[#2f4566]"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[420px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-3">
+                            Hapus Transaksi?
+                        </h2>
+
+                        <p className="text-[14px] text-gray-600 mb-6">
+                            Apakah kamu yakin ingin menghapus data transaksi ini? Data yang sudah dihapus tidak dapat dikembalikan.
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <FaEye
+                                onClick={() => handleView(item)}
+                                className="cursor-pointer text-[#3d5577]"
+                            />
+
+                            <FaPen
+                                onClick={() => handleEdit(item)}
+                                className="cursor-pointer text-[#3d5577]"
+                            />
+
+                            <FaTrash
+                                onClick={() => handleDelete(item.id)}
+                                className="text-red-600 cursor-pointer"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

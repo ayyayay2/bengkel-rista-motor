@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FaEye, FaPen, FaPrint, FaPlus, FaSearch, FaTrash} from "react-icons/fa";
+import { FaEye, FaPen, FaPrint, FaPlus, FaSearch } from "react-icons/fa";
 
 export default function Customers() {
     const [showForm, setShowForm] = useState(false);
@@ -15,6 +15,10 @@ export default function Customers() {
         jumlahService: "",
         status: "SELESAI",
     });
+
+    const [editId, setEditId] = useState(null);
+    const [selectedPelanggan, setSelectedPelanggan] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     const getCustomerData = async () => {
         try {
@@ -48,14 +52,22 @@ export default function Customers() {
         e.preventDefault();
 
         try {
-            await axios.post("http://127.0.0.1:8000/api/pelanggan", {
+            const payload = {
                 nama: formData.nama,
                 no_telp: formData.noTelp,
                 no_polisi: formData.noPolisi,
                 servis_terakhir: formData.servisTerakhir,
-                jumlah_service: Number(formData.jumlahService),
+                jumlah_service: Number(formData.jumlahService || 0),
                 status: formData.status,
-            });
+            };
+
+            if (editId) {
+                await axios.put(`http://127.0.0.1:8000/api/pelanggan/${editId}`, payload);
+                alert("Data pelanggan berhasil diperbarui!");
+            } else {
+                await axios.post("http://127.0.0.1:8000/api/pelanggan", payload);
+                alert("Data pelanggan berhasil ditambahkan!");
+            }
 
             await getCustomerData();
 
@@ -68,39 +80,32 @@ export default function Customers() {
                 status: "ANTRE",
             });
 
+            setEditId(null);
             setShowForm(false);
-            alert("Data pelanggan berhasil ditambahkan!");
         } catch (error) {
-            console.error("Gagal menambah data pelanggan:", error);
-            alert("Gagal menambah data pelanggan. Cek console ya.");
+            console.error("Gagal menyimpan data pelanggan:", error);
+            alert("Gagal menyimpan data pelanggan. Cek console ya.");
         }
+    };
+
+    const handleEdit = (item) => {
+        setEditId(item.id);
+
+        setFormData({
+            nama: item.nama,
+            noTelp: item.no_telp,
+            noPolisi: item.no_polisi,
+            servisTerakhir: item.servis_terakhir || "",
+            jumlahService: item.jumlah_service || 0,
+            status: item.status,
+        });
+
+        setShowForm(true);
     };
 
     const handleView = (item) => {
-        alert(
-            `Detail Pelanggan\n\n` +
-            `Nama: ${item.nama}\n` +
-            `No. Telp: ${item.no_telp}\n` +
-            `No. Polisi: ${item.no_polisi}\n` +
-            `Servis Terakhir: ${item.servis_terakhir || "-"}\n` +
-            `Jumlah Service: ${item.jumlah_service}\n` +
-            `Status: ${item.status}`
-        );
-    };
-
-    const handleDelete = async (id) => {
-        const confirmDelete = window.confirm("Yakin ingin menghapus data pelanggan ini?");
-
-        if (!confirmDelete) return;
-
-        try {
-            await axios.delete(`http://127.0.0.1:8000/api/pelanggan/${id}`);
-            await getCustomerData();
-            alert("Data pelanggan berhasil dihapus!");
-        } catch (error) {
-            console.error("Gagal menghapus data pelanggan:", error);
-            alert("Gagal menghapus data pelanggan.");
-        }
+        setSelectedPelanggan(item);
+        setShowDetailModal(true);
     };
 
     return (
@@ -174,17 +179,6 @@ export default function Customers() {
                                 className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
                                 required
                             />
-
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
-                            >
-                                <option value="SELESAI">SELESAI</option>
-                                <option value="PROSES">PROSES</option>
-                                <option value="ANTRE">ANTRE</option>
-                            </select>
                         </div>
 
                         <div className="flex justify-end mt-5 gap-3">
@@ -341,11 +335,10 @@ export default function Customers() {
                                                 className="cursor-pointer text-[#3d5577]"
                                             />
 
-                                            <FaPen className="cursor-pointer text-[#3d5577]" />
-
-                                            <button onClick={() => handleDelete(item.id)}>
-                                                <FaTrash className="cursor-pointer text-red-500 hover:text-red-700" />
-                                            </button>
+                                            <FaPen
+                                                onClick={() => handleEdit(item)}
+                                                className="cursor-pointer text-[#3d5577]"
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -354,6 +347,93 @@ export default function Customers() {
                     </tbody>
                 </table>
             </div>
+
+            {showDetailModal && selectedPelanggan && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[430px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-5">
+                            Detail Pelanggan
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Nama
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedPelanggan.nama}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    No Telepon
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedPelanggan.no_telp}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    No Polisi
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedPelanggan.no_polisi}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Servis Terakhir
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedPelanggan.servis_terakhir || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Jumlah Service
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedPelanggan.jumlah_service}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Status
+                                </p>
+                                <span
+                                    className={`inline-block text-[12px] font-bold px-3 py-1 rounded-full ${
+                                        selectedPelanggan.status === "SELESAI"
+                                            ? "bg-green-100 text-green-600"
+                                            : selectedPelanggan.status === "PROSES"
+                                            ? "bg-yellow-100 text-yellow-600"
+                                            : "bg-gray-100 text-gray-600"
+                                    }`}
+                                >
+                                    {selectedPelanggan.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setSelectedPelanggan(null);
+                                }}
+                                className="bg-[#3d5577] text-white px-5 py-2 rounded-[6px] font-bold hover:bg-[#2f4566]"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FaEye, FaPen, FaPrint, FaPlus, FaSearch, FaTrash} from "react-icons/fa";
+import { FaEye, FaPen, FaPlus, FaSearch} from "react-icons/fa";
 
 export default function Karyawan() {
     const [showForm, setShowForm] = useState(false);
@@ -27,6 +27,10 @@ export default function Karyawan() {
         status: "AKTIF",
     });
 
+    const [editId, setEditId] = useState(null);
+    const [selectedKaryawan, setSelectedKaryawan] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+
     const statusStyle = {
         AKTIF: "bg-[#22c55e] text-white",
         CUTI: "bg-[#facc15] text-black",
@@ -46,12 +50,20 @@ export default function Karyawan() {
         e.preventDefault();
 
         try {
-            await axios.post("http://127.0.0.1:8000/api/karyawan", {
+            const payload = {
                 nama: formData.nama,
                 jabatan: formData.jabatan,
                 no_telp: formData.noTelp,
                 status: formData.status,
-            });
+            };
+
+            if (editId) {
+                await axios.put(`http://127.0.0.1:8000/api/karyawan/${editId}`, payload);
+                alert("Data karyawan berhasil diperbarui!");
+            } else {
+                await axios.post("http://127.0.0.1:8000/api/karyawan", payload);
+                alert("Data karyawan berhasil ditambahkan!");
+            }
 
             await getKaryawanData();
 
@@ -62,33 +74,30 @@ export default function Karyawan() {
                 status: "AKTIF",
             });
 
+            setEditId(null);
             setShowForm(false);
-            alert("Data karyawan berhasil ditambahkan!");
         } catch (error) {
-            console.error("Gagal menambah data karyawan:", error);
-            alert("Gagal menambah data karyawan. Cek console ya.");
+            console.error("Gagal menyimpan data karyawan:", error);
+            alert("Gagal menyimpan data karyawan. Cek console ya.");
         }
+    };
+
+    const handleEdit = (item) => {
+        setEditId(item.id);
+
+        setFormData({
+            nama: item.nama,
+            jabatan: item.jabatan,
+            noTelp: item.no_telp,
+            status: item.status,
+        });
+
+        setShowForm(true);
     };
 
     const handleView = (item) => {
-        alert(
-            `Nama: ${item.nama}\nNo Telp: ${item.no_telp}\nNo Polisi: ${item.no_polisi}\nStatus: ${item.status}`
-        );
-    };
-
-    const handleDelete = async (id) => {
-        const confirmDelete = window.confirm("Yakin ingin menghapus data karyawan ini?");
-
-        if (!confirmDelete) return;
-
-        try {
-            await axios.delete(`http://127.0.0.1:8000/api/karyawan/${id}`);
-            await getKaryawanData();
-            alert("Data karyawan berhasil dihapus!");
-        } catch (error) {
-            console.error("Gagal menghapus data karyawan:", error);
-            alert("Gagal menghapus data karyawan.");
-        }
+        setSelectedKaryawan(item);
+        setShowDetailModal(true);
     };
 
     return (
@@ -300,11 +309,10 @@ export default function Karyawan() {
                                                 onClick={() => handleView(item)}
                                                 className="cursor-pointer text-[#3d5577]"
                                             />
-                                            <FaPen className="cursor-pointer text-[#3d5577]" />
-
-                                            <button onClick={() => handleDelete(item.id)}>
-                                                <FaTrash className="cursor-pointer text-red-500 hover:text-red-700" />
-                                            </button>
+                                    <FaPen
+                                        onClick={() => handleEdit(item)}
+                                        className="cursor-pointer text-[#3d5577]"
+                                    />                                         
                                         </div>
                                     </td>
                                 </tr>
@@ -313,6 +321,72 @@ export default function Karyawan() {
                     </tbody>
                 </table>
             </div>
+
+            {showDetailModal && selectedKaryawan && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[420px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-5">
+                            Detail Karyawan
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Nama
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKaryawan.nama}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Jabatan
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKaryawan.jabatan}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    No Telepon
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKaryawan.no_telp}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Status
+                                </p>
+                                <span
+                                    className={`inline-block text-[12px] font-bold px-3 py-1 rounded-full ${
+                                        selectedKaryawan.status === "AKTIF"
+                                            ? "bg-green-100 text-green-600"
+                                            : "bg-red-100 text-red-600"
+                                    }`}
+                                >
+                                    {selectedKaryawan.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setSelectedKaryawan(null);
+                                }}
+                                className="bg-[#3d5577] text-white px-5 py-2 rounded-[6px] font-bold hover:bg-[#2f4566]"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

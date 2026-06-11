@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FaEye, FaPen, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
+import { FaEye, FaPen, FaPlus, FaSearch, FaPrint } from "react-icons/fa";
 
 export default function Kendaraan() {
     const [showForm, setShowForm] = useState(false);
@@ -17,6 +17,10 @@ export default function Kendaraan() {
         servisTerakhir: "",
         status: "SELESAI",
     });
+
+    const [editId, setEditId] = useState(null);
+    const [selectedKendaraan, setSelectedKendaraan] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     const getKendaraanData = async () => {
         try {
@@ -50,7 +54,7 @@ export default function Kendaraan() {
         e.preventDefault();
 
         try {
-            await axios.post("http://127.0.0.1:8000/api/kendaraan", {
+            const payload = {
                 plat_nomor: formData.platNomor,
                 pemilik: formData.pemilik,
                 merk: formData.merk,
@@ -59,7 +63,15 @@ export default function Kendaraan() {
                 warna: formData.warna,
                 servis_terakhir: formData.servisTerakhir,
                 status: formData.status,
-            });
+            };
+
+            if (editId) {
+                await axios.put(`http://127.0.0.1:8000/api/kendaraan/${editId}`, payload);
+                alert("Data kendaraan berhasil diperbarui!");
+            } else {
+                await axios.post("http://127.0.0.1:8000/api/kendaraan", payload);
+                alert("Data kendaraan berhasil ditambahkan!");
+            }
 
             await getKendaraanData();
 
@@ -74,18 +86,34 @@ export default function Kendaraan() {
                 status: "ANTRE",
             });
 
+            setEditId(null);
             setShowForm(false);
-            alert("Data kendaraan berhasil ditambahkan!");
         } catch (error) {
-            console.error("Gagal menambah data kendaraan:", error);
-            alert("Gagal menambah data kendaraan. Cek console ya.");
+            console.error("Gagal menyimpan data kendaraan:", error);
+            alert("Gagal menyimpan data kendaraan. Cek console ya.");
         }
     };
 
+    const handleEdit = (item) => {
+        setEditId(item.id);
+
+        setFormData({
+            platNomor: item.plat_nomor,
+            pemilik: item.pemilik,
+            merk: item.merk,
+            tipe: item.tipe,
+            tahun: item.tahun || "",
+            warna: item.warna || "",
+            servisTerakhir: item.servis_terakhir || "",
+            status: item.status,
+        });
+
+        setShowForm(true);
+    };
+
     const handleView = (item) => {
-        alert(
-            `Plat Nomor: ${item.plat_nomor}\nPemilik: ${item.pemilik}\nMerk: ${item.merk}\nTipe: ${item.tipe}\nTahun: ${item.tahun}\nWarna: ${item.warna}\nServis Terakhir: ${item.servis_terakhir || "-"}\nStatus: ${item.status}`
-        );
+        setSelectedKendaraan(item);
+        setShowDetailModal(true);
     };
 
     const handleDelete = async (id) => {
@@ -195,17 +223,6 @@ export default function Kendaraan() {
                                 className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
                                 required
                             />
-
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
-                            >
-                                <option value="SELESAI">SELESAI</option>
-                                <option value="PROSES">PROSES</option>
-                                <option value="ANTRE">ANTRE</option>
-                            </select>
                         </div>
 
                         <div className="flex justify-end mt-5 gap-3">
@@ -368,10 +385,11 @@ export default function Kendaraan() {
                                                 onClick={() => handleView(item)}
                                                 className="cursor-pointer text-[#3d5577]"
                                             />                                            
-                                            <FaPen className="cursor-pointer" />
-                                            <button onClick={() => handleDelete(item.id)}>
-                                                <FaTrash className="cursor-pointer text-red-500 hover:text-red-700" />
-                                            </button>                                        </div>
+                                            <FaPen
+                                                onClick={() => handleEdit(item)}
+                                                className="cursor-pointer text-[#3d5577]"
+                                            />                                            
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -379,6 +397,111 @@ export default function Kendaraan() {
                     </tbody>
                 </table>
             </div>
+
+            {showDetailModal && selectedKendaraan && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[460px] rounded-[10px] shadow-lg p-6">
+                        <h2 className="text-[22px] font-extrabold text-black mb-5">
+                            Detail Kendaraan
+                        </h2>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Plat Nomor
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKendaraan.plat_nomor}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Pemilik
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKendaraan.pemilik}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Merk
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKendaraan.merk}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Tipe
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKendaraan.tipe}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Tahun
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKendaraan.tahun || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Warna
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKendaraan.warna || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Servis Terakhir
+                                </p>
+                                <p className="text-[16px] font-bold text-gray-800">
+                                    {selectedKendaraan.servis_terakhir || "-"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-[12px] text-gray-500 font-semibold">
+                                    Status
+                                </p>
+                                <span
+                                    className={`inline-block text-[12px] font-bold px-3 py-1 rounded-full ${
+                                        selectedKendaraan.status === "SELESAI"
+                                            ? "bg-green-100 text-green-600"
+                                            : selectedKendaraan.status === "PROSES"
+                                            ? "bg-yellow-100 text-yellow-600"
+                                            : "bg-gray-100 text-gray-600"
+                                    }`}
+                                >
+                                    {selectedKendaraan.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setSelectedKendaraan(null);
+                                }}
+                                className="bg-[#3d5577] text-white px-5 py-2 rounded-[6px] font-bold hover:bg-[#2f4566]"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

@@ -124,7 +124,7 @@ class TransaksiController extends Controller
 
         $validated = $request->validate([
             'tanggal' => 'nullable|date',
-            'no_transaksi' => 'required|unique:transaksi,no_transaksi,' . $id,
+            'no_transaksi' => 'nullable|unique:transaksi,no_transaksi,' . $id,
             'nama_pelanggan' => 'required',
             'no_telp' => 'nullable',
             'no_polisi' => 'required',
@@ -142,8 +142,8 @@ class TransaksiController extends Controller
         $biayaSparepart = $validated['biaya_sparepart'] ?? 0;
 
         $data->update([
-            'tanggal' => $validated['tanggal'] ?? now()->toDateString(),
-            'no_transaksi' => $validated['no_transaksi'],
+            'tanggal' => $validated['tanggal'] ?? $data->tanggal,
+            'no_transaksi' => $validated['no_transaksi'] ?? $data->no_transaksi,
             'nama_pelanggan' => $validated['nama_pelanggan'],
             'no_telp' => $validated['no_telp'] ?? null,
             'no_polisi' => $validated['no_polisi'],
@@ -158,6 +158,27 @@ class TransaksiController extends Controller
             'status' => $validated['status'],
         ]);
 
+        Pelanggan::updateOrCreate(
+            ['no_polisi' => $validated['no_polisi']],
+            [
+                'nama' => $validated['nama_pelanggan'],
+                'no_telp' => $validated['no_telp'] ?? null,
+                'servis_terakhir' => $validated['jenis_service'],
+                'status' => $validated['status'],
+            ]
+        );
+
+        Kendaraan::updateOrCreate(
+            ['plat_nomor' => $validated['no_polisi']],
+            [
+                'pemilik' => $validated['nama_pelanggan'],
+                'merk' => $validated['merk'] ?? '-',
+                'tipe' => $validated['tipe'] ?? '-',
+                'servis_terakhir' => $validated['jenis_service'],
+                'status' => $validated['status'],
+            ]
+        );
+
         return response()->json([
             'message' => 'Data transaksi berhasil diperbarui',
             'data' => $data
@@ -166,8 +187,18 @@ class TransaksiController extends Controller
 
     public function destroy($id)
     {
-        $data = Transaksi::findOrFail($id);
-        $data->delete();
+        $transaksi = Transaksi::findOrFail($id);
+
+        $noPolisi = $transaksi->no_polisi;
+
+        $transaksi->delete();
+
+        $masihAdaTransaksi = Transaksi::where('no_polisi', $noPolisi)->exists();
+
+        if (!$masihAdaTransaksi) {
+            Pelanggan::where('no_polisi', $noPolisi)->delete();
+            Kendaraan::where('plat_nomor', $noPolisi)->delete();
+        }
 
         return response()->json([
             'message' => 'Data transaksi berhasil dihapus'

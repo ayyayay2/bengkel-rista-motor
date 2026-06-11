@@ -310,28 +310,57 @@ export default function Pengaturan() {
                         </div>
                     </div>
 
-                    {/* Aksi Cepat */}
+                    {/* Informasi Sistem */}
                     <div className="bg-white rounded-[8px] p-6 shadow-sm">
                         <h2 className="text-[20px] font-extrabold text-black mb-5">
-                            Aksi Cepat
+                            Informasi Sistem
                         </h2>
 
                         <div className="space-y-4">
-                            <button
-                                onClick={handleBackup}
-                                className="w-full border-2 border-[#3d5577] text-[#3d5577] font-bold py-3 rounded-[6px] flex items-center justify-center gap-3 hover:bg-[#3d5577] hover:text-white transition-all"
-                            >
-                                <FaDatabase />
-                                Backup Data
-                            </button>
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <span className="text-[14px] text-gray-500">
+                                    Nama Sistem
+                                </span>
+                                <span className="text-[14px] font-bold text-gray-800">
+                                    Sistem Informasi Bengkel
+                                </span>
+                            </div>
 
-                            <button
-                                onClick={handleKelolaAkun}
-                                className="w-full border-2 border-[#3d5577] text-[#3d5577] font-bold py-3 rounded-[6px] flex items-center justify-center gap-3 hover:bg-[#3d5577] hover:text-white transition-all"
-                            >
-                                <FaUserCog />
-                                Kelola Akun
-                            </button>
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <span className="text-[14px] text-gray-500">
+                                    Bengkel
+                                </span>
+                                <span className="text-[14px] font-bold text-gray-800">
+                                    Rista Motor
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <span className="text-[14px] text-gray-500">
+                                    Versi
+                                </span>
+                                <span className="text-[14px] font-bold text-gray-800">
+                                    1.0.0
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <span className="text-[14px] text-gray-500">
+                                    Database
+                                </span>
+                                <span className="text-[14px] font-bold text-gray-800">
+                                    MySQL
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-[14px] text-gray-500">
+                                    Status Sistem
+                                </span>
+                                <span className="bg-green-100 text-green-600 text-[12px] font-bold px-3 py-1 rounded-full">
+                                    Aktif
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

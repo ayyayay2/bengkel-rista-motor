@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { FaBell, FaSearch, FaUserCircle, FaChevronDown } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -32,6 +33,31 @@ export default function Header() {
         navigate("/login");
     };
 
+    const [jumlahNotifikasi, setJumlahNotifikasi] = useState(0);
+    const [stokNotifikasi, setStokNotifikasi] = useState([]);
+    const [showNotifikasi, setShowNotifikasi] = useState(false);
+
+    useEffect(() => {
+        const getNotifikasiStok = async () => {
+            try {
+                const response = await axios.get("http://127.0.0.1:8000/api/stok-suku-cadang");
+
+                const stokMenipis = response.data.data.filter(
+                    (item) =>
+                        item.status?.toLowerCase() === "menipis" ||
+                        item.status?.toLowerCase() === "habis"
+                );
+
+                setJumlahNotifikasi(stokMenipis.length);
+                setStokNotifikasi(stokMenipis);
+            } catch (error) {
+                console.error("Gagal mengambil notifikasi stok:", error);
+            }
+        };
+
+        getNotifikasiStok();
+    }, []);
+
     return (
         <header className="h-[95px] bg-white flex items-center justify-between px-8">
             {/* Judul halaman */}
@@ -53,7 +79,73 @@ export default function Header() {
                 </div>
 
                 {/* Bell */}
-                <FaBell className="text-gray-600 text-[30px] cursor-pointer" />
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setShowNotifikasi(!showNotifikasi)}
+                        className="relative cursor-pointer"
+                    >
+                        <FaBell className="text-gray-600 text-[30px]" />
+
+                        {jumlahNotifikasi > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                {jumlahNotifikasi}
+                            </span>
+                        )}
+                    </button>
+
+                    {showNotifikasi && (
+                        <div className="absolute right-0 mt-3 w-[320px] bg-white rounded-[10px] shadow-lg border border-gray-100 z-50">
+                            <div className="p-4 border-b border-gray-100">
+                                <h3 className="font-bold text-[16px] text-gray-800">
+                                    Notifikasi Stok
+                                </h3>
+                                <p className="text-[12px] text-gray-500">
+                                    Daftar stok yang menipis atau habis
+                                </p>
+                            </div>
+
+                            <div className="max-h-[260px] overflow-y-auto">
+                                {stokNotifikasi.length === 0 ? (
+                                    <div className="p-4 text-center text-gray-500 text-[14px]">
+                                        Semua stok masih aman.
+                                    </div>
+                                ) : (
+                                    stokNotifikasi.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="p-4 border-b border-gray-100 hover:bg-gray-50"
+                                        >
+                                            <div className="flex justify-between items-start gap-3">
+                                                <div>
+                                                    <p className="font-bold text-[14px] text-gray-800">
+                                                        {item.nama_suku_cadang}
+                                                    </p>
+                                                    <p className="text-[12px] text-gray-500">
+                                                        No Seri: {item.no_seri}
+                                                    </p>
+                                                    <p className="text-[12px] text-gray-500">
+                                                        Stok tersisa: {item.stok}
+                                                    </p>
+                                                </div>
+
+                                                <span
+                                                    className={`text-[11px] font-bold px-2 py-1 rounded-full ${
+                                                        item.status === "Habis"
+                                                            ? "bg-red-100 text-red-600"
+                                                            : "bg-yellow-100 text-yellow-600"
+                                                    }`}
+                                                >
+                                                    {item.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Profile */}
                 <div className="relative">
@@ -82,7 +174,7 @@ export default function Header() {
                             </div>
 
                             <button
-                                onClick={() => alert("Halaman profil belum dibuat")}
+                                onClick={() => navigate("/pengaturan")}
                                 className="w-full text-left px-5 py-3 text-[14px] hover:bg-[#eef7fc]"
                             >
                                 Profil Saya
