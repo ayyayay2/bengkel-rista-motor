@@ -11,15 +11,14 @@ import {
 } from "react-icons/fa";
 
 import {
+    BarChart,
     Bar,
-    CartesianGrid,
-    ComposedChart,
-    Legend,
-    Line,
-    ResponsiveContainer,
-    Tooltip,
     XAxis,
     YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
 } from "recharts";
 
 export default function Laporan() {
@@ -474,39 +473,43 @@ export default function Laporan() {
                     </div>
                 ) : (
                     <div className="w-full h-[320px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={chartData}>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="bulan" />
+                                <XAxis dataKey="tanggal" />
                                 <YAxis
                                     tickFormatter={(value) =>
-                                        `${value / 1000000}jt`
+                                        `Rp ${Number(value).toLocaleString("id-ID")}`
                                     }
                                 />
                                 <Tooltip
-                                    formatter={(value) => formatRupiah(value)}
+                                    formatter={(value) =>
+                                        `Rp ${Number(value).toLocaleString("id-ID")}`
+                                    }
                                 />
                                 <Legend />
+
                                 <Bar
                                     dataKey="pemasukan"
                                     name="Pemasukan"
                                     fill="#22c55e"
-                                    radius={[5, 5, 0, 0]}
+                                    radius={[6, 6, 0, 0]}
                                 />
+
                                 <Bar
                                     dataKey="pengeluaran"
                                     name="Pengeluaran"
                                     fill="#ef4444"
-                                    radius={[5, 5, 0, 0]}
+                                    radius={[6, 6, 0, 0]}
                                 />
-                                <Line
-                                    type="monotone"
+
+                                <Bar
                                     dataKey="laba"
                                     name="Laba Bersih"
-                                    stroke="#3d5577"
-                                    strokeWidth={3}
+                                    fill="#3d5577"
+                                    radius={[6, 6, 0, 0]}
                                 />
-                            </ComposedChart>
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 )}

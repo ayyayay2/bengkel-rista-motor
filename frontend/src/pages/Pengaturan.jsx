@@ -9,7 +9,7 @@ import {
 } from "react-icons/fa";
 
 export default function Pengaturan() {
-    const [formData, setFormData] = useState({
+    const defaultSettings = {
         namaBengkel: "Rista Motor Service Duri",
         alamat: "Jl. Soekarno-Hatta, Duri",
         telepon: "(0765) 123-456",
@@ -22,6 +22,16 @@ export default function Pengaturan() {
         metodePembayaran: "Tunai & Transfer",
         notifikasi: "Stok menipis & transaksi selesai",
         mataUang: "Rupiah (IDR)",
+    };
+
+    const [formData, setFormData] = useState(() => {
+        const savedSettings = localStorage.getItem("pengaturanBengkel");
+
+        if (savedSettings) {
+            return JSON.parse(savedSettings);
+        }
+
+        return defaultSettings;
     });
 
     const handleChange = (e) => {
@@ -35,7 +45,10 @@ export default function Pengaturan() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        alert("Perubahan pengaturan berhasil disimpan sementara.");
+
+        localStorage.setItem("pengaturanBengkel", JSON.stringify(formData));
+
+        alert("Perubahan pengaturan berhasil disimpan!");
     };
 
     const handleBackup = () => {

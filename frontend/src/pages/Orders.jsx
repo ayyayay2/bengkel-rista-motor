@@ -5,8 +5,10 @@ import { FaEye, FaPen, FaTrash, FaPlus } from "react-icons/fa";
 export default function Orders() {
     const [showForm, setShowForm] = useState(false);
     const [transactionData, setTransactionData] = useState([]);
+    const [stokData, setStokData] = useState([]);
 
     const [formData, setFormData] = useState({
+        jenisTransaksi: "SERVICE",
         noPolisi: "",
         namaPelanggan: "",
         noTelp: "",
@@ -19,6 +21,10 @@ export default function Orders() {
         biayaSparepart: "",
         status: "ANTRE",
     });
+
+    const [selectedSparepartId, setSelectedSparepartId] = useState("");
+    const [jumlahSparepart, setJumlahSparepart] = useState("");
+    const [sparepartDipakai, setSparepartDipakai] = useState([]);
 
     const [editId, setEditId] = useState(null);
 
@@ -37,8 +43,18 @@ export default function Orders() {
         }
     };
 
+    const getStokData = async () => {
+        try {
+            const response = await axios.get("http://127.0.0.1:8000/api/stok-suku-cadang");
+            setStokData(response.data.data);
+        } catch (error) {
+            console.error("Gagal mengambil data stok:", error);
+        }
+    };
+
     useEffect(() => {
         getTransactionData();
+        getStokData();
     }, []);
 
     const statusStyle = {
@@ -56,22 +72,132 @@ export default function Orders() {
         });
     };
 
+    const totalBiayaSparepart = sparepartDipakai.reduce(
+        (total, item) => total + Number(item.subtotal || 0),
+        0
+    );
+
+    const totalBiaya = Number(formData.biayaJasa || 0) + totalBiayaSparepart;
+
+    const handleTambahSparepart = () => {
+        if (!selectedSparepartId || !jumlahSparepart) {
+            alert("Pilih sparepart dan isi jumlah terlebih dahulu.");
+            return;
+        }
+
+        const sparepart = stokData.find(
+            (item) => item.id === Number(selectedSparepartId)
+        );
+
+        if (!sparepart) {
+            alert("Sparepart tidak ditemukan.");
+            return;
+        }
+
+        const jumlah = Number(jumlahSparepart);
+
+        if (jumlah <= 0) {
+            alert("Jumlah sparepart harus lebih dari 0.");
+            return;
+        }
+
+        if (sparepart.stok <= 0) {
+            alert("Stok sparepart ini sudah habis.");
+            return;
+        }
+
+        if (jumlah > sparepart.stok) {
+            alert(`Stok tidak cukup. Stok tersedia hanya ${sparepart.stok}.`);
+            return;
+        }
+
+        const sudahAda = sparepartDipakai.find(
+            (item) => item.stok_suku_cadang_id === sparepart.id
+        );
+
+        if (sudahAda) {
+            alert("Sparepart ini sudah ditambahkan. Hapus dulu jika ingin mengubah jumlah.");
+            return;
+        }
+
+        const itemBaru = {
+            stok_suku_cadang_id: sparepart.id,
+            nama_suku_cadang: sparepart.nama_suku_cadang,
+            harga: Number(sparepart.harga),
+            jumlah,
+            subtotal: Number(sparepart.harga) * jumlah,
+            stok_tersedia: sparepart.stok,
+        };
+
+        setSparepartDipakai([...sparepartDipakai, itemBaru]);
+        setSelectedSparepartId("");
+        setJumlahSparepart("");
+    };
+
+    const handleHapusSparepart = (id) => {
+        setSparepartDipakai(
+            sparepartDipakai.filter((item) => item.stok_suku_cadang_id !== id)
+        );
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (sparepartDipakai.length === 0) {
+            alert("Pilih minimal satu sparepart terlebih dahulu.");
+            return;
+        }
+
+        const isSparepartOnly = formData.jenisTransaksi === "SPAREPART";
+
         try {
             const payload = {
-                nama_pelanggan: formData.namaPelanggan,
-                no_telp: formData.noTelp,
-                no_polisi: formData.noPolisi,
-                merk: formData.merk,
-                tipe: formData.tipe,
-                jenis_service: formData.jenisService,
-                keluhan: formData.keluhan,
-                mekanik: formData.mekanik,
-                biaya_jasa: Number(formData.biayaJasa),
-                biaya_sparepart: Number(formData.biayaSparepart),
-                status: formData.status,
+                nama_pelanggan: isSparepartOnly
+                    ? "Pembeli Sparepart"
+                    : formData.namaPelanggan,
+
+                no_telp: isSparepartOnly
+                    ? "-"
+                    : formData.noTelp,
+
+                no_polisi: isSparepartOnly
+                    ? "-"
+                    : formData.noPolisi,
+
+                merk: isSparepartOnly
+                    ? "-"
+                    : formData.merk,
+
+                tipe: isSparepartOnly
+                    ? "-"
+                    : formData.tipe,
+
+                jenis_service: isSparepartOnly
+                    ? "Pembelian Sparepart"
+                    : formData.jenisService,
+
+                keluhan: isSparepartOnly
+                    ? "Pembelian sparepart tanpa servis"
+                    : formData.keluhan,
+
+                mekanik: isSparepartOnly
+                    ? "-"
+                    : formData.mekanik,
+
+                biaya_jasa: isSparepartOnly
+                    ? 0
+                    : Number(formData.biayaJasa || 0),
+
+                biaya_sparepart: totalBiayaSparepart,
+
+                status: isSparepartOnly
+                    ? "SELESAI"
+                    : formData.status,
+
+                spareparts: sparepartDipakai.map((item) => ({
+                    stok_suku_cadang_id: item.stok_suku_cadang_id,
+                    jumlah: item.jumlah,
+                })),
             };
 
             if (editId) {
@@ -83,8 +209,10 @@ export default function Orders() {
             }
 
             await getTransactionData();
+            await getStokData();
 
             setFormData({
+                jenisTransaksi: "SERVICE",
                 namaPelanggan: "",
                 noTelp: "",
                 noPolisi: "",
@@ -98,11 +226,20 @@ export default function Orders() {
                 status: "ANTRE",
             });
 
+            setSparepartDipakai([]);
+            setSelectedSparepartId("");
+            setJumlahSparepart("");
+
             setEditId(null);
             setShowForm(false);
         } catch (error) {
             console.error("Gagal menyimpan transaksi:", error);
-            alert("Gagal menyimpan transaksi. Cek console ya.");
+
+            if (error.response?.data?.message) {
+                alert(error.response.data.message);
+            } else {
+                alert("Gagal menyimpan transaksi. Cek console ya.");
+            }
         }
     };
 
@@ -294,6 +431,27 @@ export default function Orders() {
                     </h2>
 
                     <form onSubmit={handleSubmit}>
+
+                        {/* Jenis Transaksi */}
+                        <h3 className="font-bold text-[#3d5577] mb-3">
+                            Jenis Transaksi
+                        </h3>
+
+                        <div className="grid grid-cols-2 gap-5 mb-5">
+                            <select
+                                name="jenisTransaksi"
+                                value={formData.jenisTransaksi}
+                                onChange={handleChange}
+                                className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
+                            >
+                                <option value="SERVICE">Service Kendaraan</option>
+                                <option value="SPAREPART">Pembelian Sparepart</option>
+                            </select>
+                        </div>
+
+                    {formData.jenisTransaksi === "SERVICE" && (
+                        <>
+
                         {/* Data Pelanggan */}
                         <h3 className="font-bold text-[#3d5577] mb-3">
                             Data Pelanggan
@@ -402,6 +560,97 @@ export default function Orders() {
                             className="w-full bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none mb-5"
                             rows="3"
                         ></textarea>
+                        
+                        </>
+                    )}
+
+                        {/* Sparepart Digunakan */}
+                        <h3 className="font-bold text-[#3d5577] mb-3">
+                            Sparepart Digunakan
+                        </h3>
+
+                        <div className="grid grid-cols-3 gap-5 mb-4">
+                            <select
+                                value={selectedSparepartId}
+                                onChange={(e) => setSelectedSparepartId(e.target.value)}
+                                className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
+                            >
+                                <option value="">Pilih Sparepart</option>
+                                {stokData.map((item) => (
+                                    <option
+                                        key={item.id}
+                                        value={item.id}
+                                        disabled={item.stok <= 0}
+                                    >
+                                        {item.nama_suku_cadang} | Stok: {item.stok} | Rp. {Number(item.harga).toLocaleString("id-ID")}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <input
+                                type="number"
+                                value={jumlahSparepart}
+                                onChange={(e) => setJumlahSparepart(e.target.value)}
+                                placeholder="Jumlah"
+                                className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
+                            />
+
+                            <button
+                                type="button"
+                                onClick={handleTambahSparepart}
+                                className="bg-[#3d5577] text-white font-bold rounded-[6px] hover:bg-[#2f4566]"
+                            >
+                                Tambah Sparepart
+                            </button>
+                        </div>
+
+                        {sparepartDipakai.length > 0 && (
+                            <div className="bg-[#f8fafc] rounded-[8px] overflow-hidden mb-5">
+                                <table className="w-full text-left">
+                                    <thead className="bg-[#e5e7eb]">
+                                        <tr>
+                                            <th className="p-3 text-[13px] font-bold">Sparepart</th>
+                                            <th className="p-3 text-[13px] font-bold">Harga</th>
+                                            <th className="p-3 text-[13px] font-bold">Jumlah</th>
+                                            <th className="p-3 text-[13px] font-bold">Subtotal</th>
+                                            <th className="p-3 text-[13px] font-bold">Aksi</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {sparepartDipakai.map((item) => (
+                                            <tr key={item.stok_suku_cadang_id} className="border-b border-gray-200">
+                                                <td className="p-3 text-[13px]">
+                                                    {item.nama_suku_cadang}
+                                                </td>
+
+                                                <td className="p-3 text-[13px]">
+                                                    Rp. {Number(item.harga).toLocaleString("id-ID")}
+                                                </td>
+
+                                                <td className="p-3 text-[13px]">
+                                                    {item.jumlah}
+                                                </td>
+
+                                                <td className="p-3 text-[13px] font-bold">
+                                                    Rp. {Number(item.subtotal).toLocaleString("id-ID")}
+                                                </td>
+
+                                                <td className="p-3 text-[13px]">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHapusSparepart(item.stok_suku_cadang_id)}
+                                                        className="text-red-600 font-bold hover:text-red-800"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
                         {/* Data Biaya */}
                         <h3 className="font-bold text-[#3d5577] mb-3">
@@ -419,14 +668,35 @@ export default function Orders() {
                                 required
                             />
 
-                            <input
-                                type="number"
-                                name="biayaSparepart"
-                                value={formData.biayaSparepart}
-                                onChange={handleChange}
-                                placeholder="Biaya Sparepart"
-                                className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
-                            />
+                            <div className="grid grid-cols-3 gap-5 mb-5">
+                                <input
+                                    type="number"
+                                    name="biayaJasa"
+                                    value={formData.biayaJasa}
+                                    onChange={handleChange}
+                                    placeholder="Biaya Jasa"
+                                    className="bg-[#eef7fc] px-4 py-3 rounded-[6px] outline-none"
+                                    required
+                                />
+
+                                <div className="bg-[#eef7fc] px-4 py-3 rounded-[6px]">
+                                    <p className="text-[12px] text-gray-500 font-semibold">
+                                        Biaya Sparepart
+                                    </p>
+                                    <p className="font-bold text-[#3d5577]">
+                                        Rp. {totalBiayaSparepart.toLocaleString("id-ID")}
+                                    </p>
+                                </div>
+
+                                <div className="bg-[#eef7fc] px-4 py-3 rounded-[6px]">
+                                    <p className="text-[12px] text-gray-500 font-semibold">
+                                        Total Biaya
+                                    </p>
+                                    <p className="font-bold text-[#3d5577]">
+                                        Rp. {totalBiaya.toLocaleString("id-ID")}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex justify-end gap-3">
@@ -740,20 +1010,22 @@ export default function Orders() {
                         </p>
 
                         <div className="flex justify-end gap-3">
-                            <FaEye
-                                onClick={() => handleView(item)}
-                                className="cursor-pointer text-[#3d5577]"
-                            />
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteId(null);
+                                }}
+                                className="px-5 py-2 rounded-[6px] border border-gray-300 font-bold text-gray-600 hover:bg-gray-100"
+                            >
+                                Batal
+                            </button>
 
-                            <FaPen
-                                onClick={() => handleEdit(item)}
-                                className="cursor-pointer text-[#3d5577]"
-                            />
-
-                            <FaTrash
-                                onClick={() => handleDelete(item.id)}
-                                className="text-red-600 cursor-pointer"
-                            />
+                            <button
+                                onClick={confirmDelete}
+                                className="px-5 py-2 rounded-[6px] bg-red-600 text-white font-bold hover:bg-red-700"
+                            >
+                                Hapus
+                            </button>
                         </div>
                     </div>
                 </div>
