@@ -1,4 +1,5 @@
 import { FaTools, FaUser, FaLock, FaEnvelope } from "react-icons/fa";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Register() {
     return (
@@ -90,7 +91,10 @@ export default function Register() {
                 </button>
 
                 <p className="text-center text-[#3d5577] text-[10px] mt-4">
-                    Sudah punya akun? Login
+                    Sudah punya akun?{" "}
+                    <Link to="/login" className="font-bold hover:underline">
+                        Login
+                    </Link>
                 </p>
             </form>
         </div>

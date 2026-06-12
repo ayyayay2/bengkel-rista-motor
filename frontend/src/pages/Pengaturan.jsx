@@ -9,12 +9,14 @@ import {
 } from "react-icons/fa";
 
 export default function Pengaturan() {
+    const userLogin = JSON.parse(localStorage.getItem("user"));
+
     const defaultSettings = {
         namaBengkel: "Rista Motor Service Duri",
         alamat: "Jl. Soekarno-Hatta, Duri",
-        telepon: "(0765) 123-456",
-        email: "admin@ristamotor.id",
-        owner: "Dullah",
+        telepon: userLogin?.no_whatsapp || "(0765) 123-456",
+        email: userLogin?.email || "admin@ristamotor.id",
+        owner: userLogin?.name || "Owner",
         statusDefault: "ANTRE",
         batasStok: "5",
         jamBuka: "08.00",
@@ -27,8 +29,17 @@ export default function Pengaturan() {
     const [formData, setFormData] = useState(() => {
         const savedSettings = localStorage.getItem("pengaturanBengkel");
 
+        const userLogin = JSON.parse(localStorage.getItem("user"));
+
         if (savedSettings) {
-            return JSON.parse(savedSettings);
+            const parsedSettings = JSON.parse(savedSettings);
+
+            return {
+                ...parsedSettings,
+                telepon: userLogin?.no_whatsapp || parsedSettings.telepon,
+                email: userLogin?.email || parsedSettings.email,
+                owner: userLogin?.name || parsedSettings.owner,
+            };
         }
 
         return defaultSettings;
